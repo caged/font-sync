@@ -7,7 +7,6 @@ require 'dotenv/load'
 
 agent = Mechanize.new do |agent|
   agent.user_agent_alias = 'Mac Safari'
-  agent.pluggable_parser.default = Mechanize::Download
 end
 
 agent.get('https://www.myfonts.com/secure/login/') do |login_page|
@@ -19,9 +18,21 @@ agent.get('https://www.myfonts.com/secure/login/') do |login_page|
 
   # Collect orders from order page
   orders_page = agent.get('https://www.myfonts.com/my/orders/') do |op|
-    op.links_with(css: '.ordernumlink').each do |ol|
-      puts ol.click.content
-      exit
+    order_links = op.links_with(css: '.ordernumlink')
+    total_orders = order_links.count
+    order_links.each_with_index do |ol, idx|
+      puts "Fetching #{idx + 1} of #{total_orders}..."
+      order_number = ol.href.strip.gsub(/\//, '')
+      file_name = File.join('downloads', "#{order_number}.zip")
+
+      if File.exists?(file_name)
+        puts "Skipping order #{order_number}.  File exists at #{file_name}"
+        next
+      end
+
+      font_page = ol.click
+      file_data = font_page.form_with(css: '.downloadallbtn form').click_button
+      File.open(file_name, 'wb') << file_data.body
     end
   end
 end
