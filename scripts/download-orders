@@ -5,9 +5,10 @@ require 'mechanize'
 require 'dotenv/load'
 
 
-a = Mechanize.new { |agent|
+agent = Mechanize.new do |agent|
   agent.user_agent_alias = 'Mac Safari'
-}
+  agent.pluggable_parser.default = Mechanize::Download
+end
 
 a.get('https://www.myfonts.com/secure/login/') do |page|
   page.form_with(:id => 'signin_form') do |form|
