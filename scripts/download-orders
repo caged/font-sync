@@ -10,9 +10,18 @@ agent = Mechanize.new do |agent|
   agent.pluggable_parser.default = Mechanize::Download
 end
 
-a.get('https://www.myfonts.com/secure/login/') do |page|
-  page.form_with(:id => 'signin_form') do |form|
+agent.get('https://www.myfonts.com/secure/login/') do |login_page|
+  # Login
+  login_page.form_with(:id => 'signin_form') do |form|
     form.username = ENV['MYFONTS_USERNAME']
     form.password = ENV['MYFONTS_PASSWORD']
+  end.click_button
+
+  # Collect orders from order page
+  orders_page = agent.get('https://www.myfonts.com/my/orders/') do |op|
+    op.links_with(css: '.ordernumlink').each do |ol|
+      puts ol.click.content
+      exit
+    end
   end
 end
