@@ -1,9 +1,7 @@
 #!/usr/bin/env ruby
-
 require 'rubygems'
 require 'mechanize'
 require 'dotenv/load'
-
 
 agent = Mechanize.new do |agent|
   agent.user_agent_alias = 'Mac Safari'
@@ -23,7 +21,7 @@ agent.get('https://www.myfonts.com/secure/login/') do |login_page|
     order_links.each_with_index do |ol, idx|
       puts "Fetching #{idx + 1} of #{total_orders}..."
       order_number = ol.href.strip.gsub(/\//, '')
-      file_name = File.join('downloads', "#{order_number}.zip")
+      file_name = File.join(ENV['ARCHIVE_DIR'], "#{order_number}.zip")
 
       if File.exists?(file_name)
         puts "Skipping order #{order_number}.  File exists at #{file_name}"
