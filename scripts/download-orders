@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
+
 require 'rubygems'
 require 'mechanize'
+require 'json'
+require 'fileutils'
 require 'dotenv/load'
 
 agent = Mechanize.new do |agent|
@@ -16,6 +19,8 @@ agent.get('https://www.myfonts.com/secure/login/') do |login_page|
 
   # Collect orders from order page
   orders_page = agent.get('https://www.myfonts.com/my/orders/') do |op|
+
+    # Download Font archive files
     order_links = op.links_with(css: '.ordernumlink')
     total_orders = order_links.count
     order_links.each_with_index do |ol, idx|
@@ -31,6 +36,25 @@ agent.get('https://www.myfonts.com/secure/login/') do |login_page|
       font_page = ol.click
       file_data = font_page.form_with(css: '.downloadallbtn form').click_button
       File.open(file_name, 'wb') << file_data.body
+    end
+
+    # Download image previews created by font designer
+    font_list_page = op.link_with(css:'#localtab_fonts a').click
+    font_links = font_list_page.links_with(css: '.search-result-item .leftstuff_name h4 a')
+    font_links.each do |fl|
+      font_url_name = fl.href.sub('/fonts/', '').sub(/\/$/, '').strip
+      puts "Getting previews for #{font_url_name}..."
+      json_data = agent.get("https://www.myfonts.com/backbone/fontfamilybyname/#{font_url_name}")
+      json = JSON.parse(json_data.body)
+      json['family']['posters'].each do |poster|
+        poster_url = poster['retinaUrl']
+        image_name = File.basename(poster_url)
+        dir_name = File.join(ENV['PREVIEW_IMAGES_DIR'], font_url_name)
+        FileUtils.mkdir_p(dir_name)
+        file_name = File.join(dir_name, image_name)
+        image_data = agent.get(poster_url)
+        File.open(file_name, 'wb') << image_data.body
+      end
     end
   end
 end
